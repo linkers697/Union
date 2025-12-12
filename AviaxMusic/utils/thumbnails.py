@@ -1,10 +1,5 @@
-# FINAL UPDATED thumbnail.py WITH AURA EFFECT
-# (Professional color grading + subtle lighting + glow + no over-saturation)
-
-# --- NOTE ---
-# Your main logic, caching, API usage, layout, fonts — NOTHING changed.
-# Only visual rendering upgraded to AURA style.
-# This code is safe to replace directly.
+# ATLEAST GIVE CREDITS IF YOU STEALING :(((((((((((((((((((((((((((((((((((((
+# ELSE NO FURTHER PUBLIC THUMBNAIL UPDATES
 
 import random
 import logging
@@ -15,11 +10,8 @@ import aiohttp
 from PIL import Image, ImageDraw, ImageEnhance, ImageFilter, ImageFont
 from py_yt import VideosSearch
 
-logging.basicConfig(level= logging.INFO)
+logging.basicConfig(level=logging.INFO)
 
-# -----------------------------------------------------
-# SAME FUNCTIONS — NO CHANGE
-# -----------------------------------------------------
 def changeImageSize(maxWidth, maxHeight, image):
     widthRatio = maxWidth / image.size[0]
     heightRatio = maxHeight / image.size[1]
@@ -76,19 +68,23 @@ def crop_center_circle(img, output_size, border, border_color, crop_scale=1.5):
             half_the_height + larger_size/2
         )
     )
+    
     img = img.resize((output_size - 2*border, output_size - 2*border))
+    
     final_img = Image.new("RGBA", (output_size, output_size), border_color)
-
+    
     mask_main = Image.new("L", (output_size - 2*border, output_size - 2*border), 0)
     draw_main = ImageDraw.Draw(mask_main)
     draw_main.ellipse((0, 0, output_size - 2*border, output_size - 2*border), fill=255)
+    
     final_img.paste(img, (border, border), mask_main)
-
+    
     mask_border = Image.new("L", (output_size, output_size), 0)
     draw_border = ImageDraw.Draw(mask_border)
     draw_border.ellipse((0, 0, output_size, output_size), fill=255)
-
+    
     result = Image.composite(final_img, Image.new("RGBA", final_img.size, (0, 0, 0, 0)), mask_border)
+    
     return result
 
 def draw_text_with_shadow(background, draw, position, text, font, fill, shadow_offset=(3, 3), shadow_blur=5):
@@ -99,10 +95,6 @@ def draw_text_with_shadow(background, draw, position, text, font, fill, shadow_o
     background.paste(shadow, shadow_offset, shadow)
     draw.text(position, text, font=font, fill=fill)
 
-
-# -----------------------------------------------------
-# MAIN THUMBNAIL GENERATOR (UPGRADED VISUALS)
-# -----------------------------------------------------
 async def gen_thumb(videoid: str):
     try:
         if os.path.isfile(f"cache/{videoid}_v4.png"):
@@ -134,123 +126,111 @@ async def gen_thumb(videoid: str):
                     elif 'png' in content_type:
                         extension = 'png'
                     else:
+                        logging.error(f"Unexpected content type: {content_type}")
                         return None
 
                     filepath = f"cache/thumb{videoid}.png"
                     f = await aiofiles.open(filepath, mode="wb")
-                    await f.write(content)
+                    await f.write(await resp.read())
                     await f.close()
 
         image_path = f"cache/thumb{videoid}.png"
         youtube = Image.open(image_path)
         image1 = changeImageSize(1280, 720, youtube)
-
-        # --------------------------------------------------
-        # BACKGROUND BASE (BLUR + DARKEN + COLOR GRADING)
-        # --------------------------------------------------
         image2 = image1.convert("RGBA")
-        background = image2.filter(ImageFilter.GaussianBlur(22))
 
-        # Mild professional color grading
-        background = ImageEnhance.Color(background).enhance(1.25)
-        background = ImageEnhance.Brightness(background).enhance(0.60)
-        background = ImageEnhance.Contrast(background).enhance(1.15)
+        background = image2.filter(filter=ImageFilter.BoxBlur(20))
+        enhancer = ImageEnhance.Brightness(background)
+        background = enhancer.enhance(0.6)
 
-        # Slight cool filter (blue aura tone)
-        blue_layer = Image.new("RGBA", background.size, (0, 120, 255, 35))
-        background = Image.alpha_composite(background, blue_layer)
+        # ------------------- ULTRA PROFESSIONAL COLOR GRADING -------------------
+
+        # 1. Stronger contrast (clean, modern)
+        contrast = ImageEnhance.Contrast(background)
+        background = contrast.enhance(1.20)
+
+        # 2. Premium saturation/vibrance boost
+        color = ImageEnhance.Color(background)
+        background = color.enhance(1.25)
+
+        # 3. Cinematic teal–orange tone
+        r, g, b, a = background.split()
+
+        # warm highlights
+        r = r.point(lambda i: min(255, int(i * 1.08)))
+
+        # cool shadows
+        b = b.point(lambda i: min(255, int(i * 1.14)))
+
+        background = Image.merge("RGBA", (r, g, b, a))
+
+        # 4. Professional clarity (micro-sharpen)
+        background = background.filter(ImageFilter.UnsharpMask(radius=2, percent=130, threshold=3))
+
+        # ------------------------------------------------------------------------
+
+        start_gradient_color = random_color()
+        end_gradient_color = random_color()
+        gradient_image = generate_gradient(1280, 720, start_gradient_color, end_gradient_color)
+        background = Image.blend(background, gradient_image, alpha=0.18)
 
         draw = ImageDraw.Draw(background)
-
-        # --------------------------------------------------
-        # AURA BIG LETTERS IN BACKGROUND
-        # --------------------------------------------------
-        aura_font = ImageFont.truetype("AviaxMusic/assets/font3.ttf", 260)
-        aura_fill = (255, 255, 255, 55)
-        letters = ["A", "U", "R", "A"]
-        aura_positions = [(60, 120), (340, 120), (620, 120), (900, 120)]
-
-        for pos, letter in zip(aura_positions, letters):
-            draw.text(pos, letter, font=aura_font, fill=aura_fill)
-
-        # Glow layer
-        glow_layer = Image.new("RGBA", background.size, (0,0,0,0))
-        glow_draw = ImageDraw.Draw(glow_layer)
-        for pos, letter in zip(aura_positions, letters):
-            glow_draw.text(pos, letter, font=aura_font, fill=(0, 180, 255, 200))
-        glow_layer = glow_layer.filter(ImageFilter.GaussianBlur(32))
-        background = Image.alpha_composite(background, glow_layer)
-
-        # --------------------------------------------------
-        # CIRCLE THUMBNAIL + AURA GLOW
-        # --------------------------------------------------
-        circle_thumbnail = crop_center_circle(youtube, 400, 20, (0, 180, 255))
-        circle_thumbnail = circle_thumbnail.resize((400, 400))
-        circle_position = (120, 160)
-
-        # Glow behind circle
-        glow_circle = Image.new("RGBA", (440, 440), (0,0,0,0))
-        glow_draw2 = ImageDraw.Draw(glow_circle)
-        glow_draw2.ellipse((0,0,440,440), fill=(0,160,255,180))
-        glow_circle = glow_circle.filter(ImageFilter.GaussianBlur(40))
-        background.paste(glow_circle, (circle_position[0]-20, circle_position[1]-20), glow_circle)
-
-        # Paste actual circle
-        background.paste(circle_thumbnail, circle_position, circle_thumbnail)
-
-        # --------------------------------------------------
-        # TEXT SECTION (Same logic, cleaner glow)
-        # --------------------------------------------------
         arial = ImageFont.truetype("AviaxMusic/assets/font2.ttf", 30)
+        font = ImageFont.truetype("AviaxMusic/assets/font.ttf", 30)
         title_font = ImageFont.truetype("AviaxMusic/assets/font3.ttf", 45)
+
+        circle_thumbnail = crop_center_circle(youtube, 400, 20, start_gradient_color)
+        circle_thumbnail = circle_thumbnail.resize((400, 400))
+        background.paste(circle_thumbnail, (120, 160), circle_thumbnail)
 
         text_x_position = 565
         title1 = truncate(title)
+        draw_text_with_shadow(background, draw, (text_x_position, 180), title1[0], title_font, (255, 255, 255))
+        draw_text_with_shadow(background, draw, (text_x_position, 230), title1[1], title_font, (255, 255, 255))
+        draw_text_with_shadow(background, draw, (text_x_position, 320), f"{channel}  |  {views[:23]}", arial, (255, 255, 255))
 
-        draw_text_with_shadow(background, draw, (text_x_position, 180), title1[0], title_font, (255,255,255))
-        draw_text_with_shadow(background, draw, (text_x_position, 230), title1[1], title_font, (255,255,255))
-        draw_text_with_shadow(background, draw, (text_x_position, 320), f"{channel}  |  {views[:23]}", arial, (255,255,255))
-
-        # --------------------------------------------------
-        # PROGRESS BAR
-        # --------------------------------------------------
-        line_length = 580
-        line_color = (0, 180, 255)
+        line_length = 580  
+        line_color = random_color()
 
         if duration != "Live":
             color_line_percentage = random.uniform(0.15, 0.85)
             color_line_length = int(line_length * color_line_percentage)
-
             start_point_color = (text_x_position, 380)
             end_point_color = (text_x_position + color_line_length, 380)
             draw.line([start_point_color, end_point_color], fill=line_color, width=9)
-
+        
             start_point_white = (text_x_position + color_line_length, 380)
             end_point_white = (text_x_position + line_length, 380)
             draw.line([start_point_white, end_point_white], fill="white", width=8)
-
-            draw.ellipse([
-                end_point_color[0]-10, 370,
-                end_point_color[0]+10, 390
-            ], fill=line_color)
+        
+            circle_radius = 10 
+            circle_position = (end_point_color[0], end_point_color[1])
+            draw.ellipse([circle_position[0] - circle_radius, circle_position[1] - circle_radius,
+                      circle_position[0] + circle_radius, circle_position[1] + circle_radius], fill=line_color)
+    
         else:
-            draw.line([(text_x_position, 380), (text_x_position + line_length, 380)], fill=(255,0,0), width=9)
-            draw.ellipse([
-                text_x_position + line_length - 10, 370,
-                text_x_position + line_length + 10, 390
-            ], fill=(255,0,0))
+            line_color = (255, 0, 0)
+            start_point_color = (text_x_position, 380)
+            end_point_color = (text_x_position + line_length, 380)
+            draw.line([start_point_color, end_point_color], fill=line_color, width=9)
+        
+            circle_radius = 10 
+            circle_position = (end_point_color[0], end_point_color[1])
+            draw.ellipse([circle_position[0] - circle_radius, circle_position[1] - circle_radius,
+                          circle_position[0] + circle_radius, circle_position[1] + circle_radius], fill=line_color)
 
-        draw_text_with_shadow(background, draw, (text_x_position, 400), "00:00", arial, (255,255,255))
-        draw_text_with_shadow(background, draw, (1080, 400), duration, arial, (255,255,255))
-
-        # PLAY ICONS
-        play_icons = Image.open("AviaxMusic/assets/play_icons.png").resize((580, 62))
+        draw_text_with_shadow(background, draw, (text_x_position, 400), "00:00", arial, (255, 255, 255))
+        draw_text_with_shadow(background, draw, (1080, 400), duration, arial, (255, 255, 255))
+        
+        play_icons = Image.open("AviaxMusic/assets/play_icons.png")
+        play_icons = play_icons.resize((580, 62))
         background.paste(play_icons, (text_x_position, 450), play_icons)
 
         os.remove(f"cache/thumb{videoid}.png")
 
         background_path = f"cache/{videoid}_v4.png"
         background.save(background_path)
+        
         return background_path
 
     except Exception as e:
